@@ -2,14 +2,28 @@ name: "Jira release note Generator"
 description: "Jira release notes generator"
 author: "Zee"
 inputs:
-  release_branch: # change this
+  release_branch:
     required: true
     description: "Release branch"
     default: "default value if applicable"
-  base_branch: # change this
+  base_branch:
     required: true
     description: "Base branch (master / main)"
-    default: "master"
+  jira_host:
+    required: true
+    description: "Jira host domain"
+  jira_email:
+    required: true
+    description: "Jira token email"
+  jira_token:
+    required: true
+    description: "Jira access token"
+  jira_base_url:
+    required: true
+    description: "Jira Base URL"
+  jira_ticket_id_pattern:
+    required: true
+    description: "Jira Ticket pattern"
 runs:
   using: "node16"
   main: "dist/index.js"

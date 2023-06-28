@@ -18,6 +18,7 @@ type JiraConfig = {
   baseUrl: string
   ticketIDPattern: RegExp
 }
+
 export default class Jira {
   config: JiraConfig
   releaseVersions = []
@@ -71,20 +72,9 @@ export default class Jira {
 
       // Get all Jira tickets (filter out duplicates by keying on ID)
       let ticketsHash = {}
-      let ticketsList = []
       logs.forEach(log => {
         log.tickets.forEach(ticket => (ticketsHash[ticket.id] = ticket))
       })
-      ticketsList = Object.keys(ticketsHash).map(k => ticketsHash[k])
-
-      // If there are Jira tickets, create a release for them
-      /* if (ticketsList.length && releaseVersion) {
-        return this.addTicketsToReleaseVersion(
-          ticketsList,
-          releaseVersion
-        ).then(() => logs)
-      } */
-
       return logs
     } catch (e) {
       throw new Error(e)
@@ -195,8 +185,10 @@ export default class Jira {
         .add(updateTicketVersion.bind(this, ticket))
         .catch(err => {
           if (err instanceof Error) {
+            console.log(ticket.key)
             console.log(err)
           } else {
+            console.log(ticket.key)
             console.log(JSON.stringify(err, null, '  '))
           }
           console.log(
@@ -239,16 +231,17 @@ export default class Jira {
     if (!this.jira) {
       return Promise.reject('Jira is not configured.')
     }
-    console.log(ticketId)
 
     return this.jira
       .findIssue(ticketId)
       .then(origTicket => {
         const ticket = Object.assign({}, origTicket)
-        console.log({origTicket})
         return ticket
       })
-      .catch(err => console.error(err))
+      .catch(err => {
+        console.log(ticketId)
+        console.error(err)
+      })
   }
 
   /**
