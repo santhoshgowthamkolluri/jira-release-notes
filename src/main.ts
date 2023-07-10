@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
 import * as core from '@actions/core'
 import * as child from 'child_process'
 
@@ -51,7 +54,7 @@ async function run(): Promise<void> {
         core.debug(`Getting range ${range.from}...${range.to} commit logs`)
         const commitLogs = await source.getCommitLogs('./', range)
         //core.debug(commitLogs)
-        const changelog = await jira.generate(commitLogs, '1.0.0')
+        const changelog = await jira.generate(commitLogs)
         const data = await transformCommitLogs(changelog, jiraConfig)
         console.log('changelog geenrated')
         const ejs = require('ejs')
@@ -71,7 +74,7 @@ async function run(): Promise<void> {
   }
 }
 
-function transformCommitLogs(logs, jiraConfig) {
+async function transformCommitLogs(logs, jiraConfig) {
   // Tickets and their commits
   const _ = require('lodash')
   const ticketHash = logs.reduce((all, log) => {
@@ -86,9 +89,6 @@ function transformCommitLogs(logs, jiraConfig) {
     Object.values(ticketHash),
     ticket => ticket.fields.issuetype.name
   )
-
-  // Pending ticket owners and their tickets/commits
-  const reporters = {}
 
   // Output filtered data
   return {

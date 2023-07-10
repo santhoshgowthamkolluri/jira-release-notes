@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import 'core-js/stable'
 import 'regenerator-runtime/runtime'
 import JiraApi from 'jira-client'
@@ -23,7 +25,7 @@ export default class Jira {
   config: JiraConfig
   releaseVersions = []
   ticketPromises = {}
-  jira
+  jira: JiraApi
   constructor(config: JiraConfig) {
     this.config = config
     this.jira = undefined
@@ -54,11 +56,13 @@ export default class Jira {
    * @param {String} releaseVersion - The name of the release version to create.
    * @return {Object}
    */
-  async generate(commitLogs, releaseVersion = null) {
+
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  async generate(commitLogs: any[]) {
     const logs = []
     this.releaseVersions = []
     try {
-      const promises = commitLogs.map(commit =>
+      const promises = commitLogs.map(async (commit: any) =>
         this.findJiraInCommit(commit)
           .then(log => {
             logs.push(log)
@@ -73,7 +77,9 @@ export default class Jira {
       // Get all Jira tickets (filter out duplicates by keying on ID)
       let ticketsHash = {}
       logs.forEach(log => {
-        log.tickets.forEach(ticket => (ticketsHash[ticket.id] = ticket))
+        log.tickets.forEach(
+          (ticket: {id: string | number}) => (ticketsHash[ticket.id] = ticket)
+        )
       })
       return logs
     } catch (e) {
@@ -89,14 +95,14 @@ export default class Jira {
    * @param {String} releaseVersion - Release version eg, mobileweb-1.8.0
    * @return {Promsie} Resolves to an object with a jira array property
    */
-  async findJiraInCommit(commitLog) {
+  async findJiraInCommit(commitLog: any) {
     const log = Object.assign({tickets: []}, {...commitLog})
     const promises = []
     const found = {}
 
     // Search for jira ticket numbers in the commit text
     const ticketKeys = this.parseTicketsFromString(log.fullText)
-    ticketKeys.forEach(key => {
+    ticketKeys.forEach((key: string | number) => {
       // Skip loading if we're loading this one
       if (found[key]) {
         return
@@ -122,7 +128,7 @@ export default class Jira {
    *
    * @return {Promise}
    */
-  fetchJiraTicket(ticketKey) {
+  fetchJiraTicket(ticketKey: string | number) {
     if (!ticketKey) {
       return Promise.resolve()
     }
@@ -147,12 +153,15 @@ export default class Jira {
    * @param {String} versionName - The name of the release version to add the ticket to.
    * @return {Promise}
    */
-  async addTicketsToReleaseVersion(tickets, versionName) {
+  async addTicketsToReleaseVersion(tickets: any[], versionName: any) {
     const versionPromises = {}
     this.releaseVersions = []
 
     // Create version and add it to a ticket
-    async function updateTicketVersion(ticket) {
+    async function updateTicketVersion(ticket: {
+      fields: {project?: any; fixVersions?: any}
+      id: any
+    }) {
       const project = ticket.fields.project.key
 
       // Create version on project
@@ -162,7 +171,7 @@ export default class Jira {
         versionPromises[project] = verPromise
 
         // Add to list of releases
-        verPromise.then(ver => {
+        verPromise.then((ver: {projectKey: any}) => {
           ver.projectKey = project
           this.releaseVersions.push(ver)
         })
@@ -180,7 +189,7 @@ export default class Jira {
     }
 
     // Loop through tickets and throttle the promises.
-    const promises = tickets.map(ticket => {
+    const promises = tickets.map(async (ticket: {key: any}) => {
       return promiseThrottle
         .add(updateTicketVersion.bind(this, ticket))
         .catch(err => {
@@ -205,11 +214,13 @@ export default class Jira {
    * @param {Array} projectKey - The project key
    * @return {Promise<String>} Resolves to version name string, as it exists in JIRA
    */
-  async createProjectVersion(versionName, projectKey) {
+  async createProjectVersion(versionName: string, projectKey: any) {
     let searchName = versionName.toLowerCase()
     const versions = await this.jira.getVersions(projectKey)
 
-    const exists = versions.find(v => v.name.toLowerCase() == searchName)
+    const exists = versions.find(
+      (v: {name: string}) => v.name.toLowerCase() == searchName
+    )
     if (exists) {
       return exists
     }
@@ -227,18 +238,18 @@ export default class Jira {
    * @param {String} ticketId - The ticket ID of the issue to retrieve.
    * @return {Promise} Resolves a jira issue object, with added `slackUser` property.
    */
-  async getJiraIssue(ticketId) {
+  async getJiraIssue(ticketId: any) {
     if (!this.jira) {
       return Promise.reject('Jira is not configured.')
     }
 
     return this.jira
       .findIssue(ticketId)
-      .then(origTicket => {
+      .then((origTicket: any) => {
         const ticket = Object.assign({}, origTicket)
         return ticket
       })
-      .catch(err => {
+      .catch((err: any) => {
         console.log(ticketId)
         console.error(err)
       })
@@ -249,12 +260,11 @@ export default class Jira {
    * @param   {Object} ticket - Jira ticket object
    * @returns {Boolean}
    */
-  includeTicket(ticket) {
+  includeTicket(ticket: {fields: {issuetype: {name: any}}}) {
     if (!ticket.fields) {
       return false
     }
 
-    const type = ticket.fields.issuetype.name
     return true
   }
 
@@ -263,7 +273,7 @@ export default class Jira {
    * @param   {Object} str - The string to parse them out of.
    * @returns {Array} List of tickets
    */
-  parseTicketsFromString(str) {
+  parseTicketsFromString(str: string) {
     const configPattern = this.config.ticketIDPattern
     const searchPattern = new RegExp(
       configPattern.source,
@@ -273,14 +283,14 @@ export default class Jira {
 
     // Extract ticket from pattern
     return matches
-      .map(match => {
-        let key = match.match(configPattern)
-        key = key.length > 1 ? key[1] : key[0]
+      .map((match: string) => {
+        const key = match.match(configPattern)
+        const jiraKey = key.length > 1 ? key[1] : key[0]
         if (!key) {
           return null
         }
-        return key.toUpperCase()
+        return jiraKey.toUpperCase()
       })
-      .filter(m => !!m)
+      .filter((m: any) => !!m)
   }
 }

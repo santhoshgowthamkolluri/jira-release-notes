@@ -1,5 +1,5 @@
 {
-    "plugins": ["jest"],
+    "plugins": ["jest", "@typescript-eslint"],
     "extends": [],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
