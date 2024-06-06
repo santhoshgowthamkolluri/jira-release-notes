@@ -29,7 +29,8 @@
     "jira-changelog": "^2.2.0",
     "jira-client": "^8.2.2",
     "promise-throttle": "^1.1.2",
-    "regexp-from-string": "^0.1.0"
+    "regexp-from-string": "^0.1.0",
+    "nodemailer": "^6.9.13"
   },
   "devDependencies": {
     "@types/jira-client": "^7.1.6",
